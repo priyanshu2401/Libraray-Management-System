@@ -1,0 +1,120 @@
+#include <iostream>
+#include <vector>
+#include <string>
+#include <mysql.h>
+
+using namespace std;
+
+class Library {
+private:
+    MYSQL* conn;
+
+public:
+    Library() {
+        conn = mysql_init(nullptr);
+        if (!conn) {
+            cerr << "Error initializing MySQL: " << mysql_error(conn) << endl;
+            exit(1);
+        }
+
+        if (!mysql_real_connect(conn, "localhost", "username", "password", "library_db", 0, nullptr, 0)) {
+            cerr << "Error connecting to MySQL database: " << mysql_error(conn) << endl;
+            exit(1);
+        }
+
+        if (mysql_query(conn, "CREATE TABLE IF NOT EXISTS Books (Title TEXT, Author TEXT, Year INT);")) {
+            cerr << "Error creating table: " << mysql_error(conn) << endl;
+            exit(1);
+        }
+    }
+
+    ~Library() {
+        mysql_close(conn);
+    }
+
+    void addBook(const string& title, const string& author, int year) {
+        string sql = "INSERT INTO Books (Title, Author, Year) VALUES ('" + title + "', '" + author + "', " + to_string(year) + ");";
+        if (mysql_query(conn, sql.c_str())) {
+            cerr << "Error executing SQL query: " << mysql_error(conn) << endl;
+        } else {
+            cout << "Book added to the library." << endl;
+        }
+    }
+
+    void removeBook(const string& title) {
+        string sql = "DELETE FROM Books WHERE Title = '" + title + "';";
+        if (mysql_query(conn, sql.c_str())) {
+            cerr << "Error executing SQL query: " << mysql_error(conn) << endl;
+        } else {
+            cout << "Book removed from the library." << endl;
+        }
+    }
+
+    void searchBook(const string& title) {
+        string sql = "SELECT * FROM Books WHERE Title = '" + title + "';";
+        if (mysql_query(conn, sql.c_str())) {
+            cerr << "Error executing SQL query: " << mysql_error(conn) << endl;
+        } else {
+            MYSQL_RES* res = mysql_store_result(conn);
+            if (res) {
+                MYSQL_ROW row;
+                while ((row = mysql_fetch_row(res))) {
+                    cout << "Title: " << row[0] << endl;
+                    cout << "Author: " << row[1] << endl;
+                    cout << "Year: " << row[2] << endl;
+                    cout << "-------------------" << endl;
+                }
+                mysql_free_result(res);
+            } else {
+                cerr << "Error fetching result: " << mysql_error(conn) << endl;
+            }
+        }
+    }
+
+    void displayBooks() {
+        string sql = "SELECT * FROM Books;";
+        if (mysql_query(conn, sql.c_str())) {
+            cerr << "Error executing SQL query: " << mysql_error(conn) << endl;
+        } else {
+            MYSQL_RES* res = mysql_store_result(conn);
+            if (res) {
+                MYSQL_ROW row;
+                while ((row = mysql_fetch_row(res))) {
+                    cout << "Title: " << row[0] << endl;
+                    cout << "Author: " << row[1] << endl;
+                    cout << "Year: " << row[2] << endl;
+                    cout << "-------------------" << endl;
+                }
+                mysql_free_result(res);
+            } else {
+                cerr << "Error fetching result: " << mysql_error(conn) << endl;
+            }
+        }
+    }
+};
+
+int main() {
+    
+    cpp
+    Library library;
+
+    // Adding books to the library
+    library.addBook("The Catcher in the Rye", "J.D. Salinger", 1951);
+    library.addBook("To Kill a Mockingbird", "Harper Lee", 1960);
+
+    // Displaying all books in the library
+    library.displayBooks();
+
+    // Searching for a book
+    cout << "Searching for 'To Kill a Mockingbird':" << endl;
+    library.searchBook("To Kill a Mockingbird");
+
+    // Removing a book
+    cout << "Removing 'The Catcher in the Rye':" << endl;
+    library.removeBook("The Catcher in the Rye");
+
+    // Displaying books after removal
+    library.displayBooks();
+
+    return 0;
+}
